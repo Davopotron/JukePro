@@ -7,11 +7,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // TODO: createToken
 function createToken(id) {
-  return jwt.sign({ id }, JWT_SECRET, {expiresIn: "1d"});
+  return jwt.sign({ id }, JWT_SECRET, { expiresIn: "1d" });
 }
 
 const prisma = require("../prisma");
-// const { token } = require("morgan");
+const { token } = require("morgan");
 
 // This token-checking middleware should run before any other routes.
 
@@ -25,10 +25,8 @@ router.use(async (req, res, next) => {
   // TODO: Find customer with ID decrypted from the token and attach to the request
   try {
     const { id } = jwt.verify(token, JWT_SECRET);
-    const customer = await prisma.customer.findUniqueOrThrow({
-      where: { id },
-    });
-    req.customer = customer;
+    const user = await prisma.customer.findUniqueOrThrow({ where: { id } });
+    req.user = user;
     next();
   } catch (e) {
     next(e);
@@ -37,10 +35,10 @@ router.use(async (req, res, next) => {
 
 // TODO: POST /register
 router.post("/register", async (req, res, next) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
   try {
-    const customer = await prisma.customer.register(email, password);
-    const token = createToken(customer.id);
+    const user = await prisma.user.register(username, password);
+    const token = createToken(user.id);
     res.status(201).json({ token });
   } catch (e) {
     next(e);
@@ -49,10 +47,10 @@ router.post("/register", async (req, res, next) => {
 
 // TODO: POST /login
 router.post("/login", async (req, res, next) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
   try {
-    const customer = await prisma.customer.login(email, password);
-    const token = createToken(customer.id);
+    const user = await prisma.user.login(username, password);
+    const token = createToken(user.id);
     res.json({ token });
   } catch (e) {
     next(e);
@@ -61,7 +59,7 @@ router.post("/login", async (req, res, next) => {
 
 /** Checks the request for an authenticated customer. */
 function authenticate(req, res, next) {
-  if (req.customer) {
+  if (req.user) {
     next();
   } else {
     next({ status: 401, message: "You must be logged in." });

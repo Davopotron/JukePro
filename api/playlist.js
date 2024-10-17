@@ -2,29 +2,50 @@ const express = require("express");
 const router = express.Router();
 module.exports = router;
 
+const { authenticate } = require("./auth");
 const prisma = require("../prisma");
 
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate, async (req, res, next) => {
     try {
-        const tracks = await prisma.track.findMany();
-        res.json(tracks);
+      const playlists = await prisma.playlist.findMany({
+        where: { ownerId: req.user.id },
+      });
+      res.json(playlists);
+    } catch (e) {
+      next(e);
+    }
+  });
+
+router.post("/", authenticate, async (req, res, next) => {
+    const { name, description, trackIds } = req.body;
+    try {
+        const tracks = trackIds.map((id) => ({ id }));
+        const playlist = await prisma.playlist.create({
+            data: {
+                name,
+                description,
+                ownerId: req.user.id,
+                tracks: { connect: tracks },
+            },
+        });
+        res.status(201).json(playlist);
     } catch (e) {
         next(e);
     }
 });
 
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", authenticate, async (req, res, next) => {
     const { id } = req.params;
-    const includePLaylists = req.user
-    ? { where: { ownerId: req.user.id } }
-    : false;
     try {
-        const track = await prisma.track.findUniqueOrThrow({
+        const playlist = await prisma.playlist.findUniqueOrThrow({
             where: { id: +id },
-            include: { playlists: includePLaylists },
+            include: { tracks: true },
         });
-        res.json(track);
+        if (playlists.ownerId !== req.user,id) {
+            next({ status: 403, message: "You don't own this playlist."});
+        }
+        res.json(playlist);
     } catch (e) {
         next(e);
     }
-    });
+});

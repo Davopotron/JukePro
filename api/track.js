@@ -15,13 +15,13 @@ router.get("/", async (req, res, next) => {
 
     router.get("/:id", async (req, res, next) => {
         const { id } = req.params;
-        const includePLaylists = req.user
+        const includePlaylists = req.user
         ? { where: { ownerId: req.user.id } }
         : false;
         try {
             const track = await prisma.track.findUniqueOrThrow({
                 where: { id: +id },
-                include: { playlists: includePLaylists },
+                include: { playlists: includePlaylists },
             });
             res.json(track);
         } catch (e) {
