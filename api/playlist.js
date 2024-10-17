@@ -1,17 +1,30 @@
-const express = require("express")
+const express = require("express");
 const router = express.Router();
 module.exports = router;
 
 const prisma = require("../prisma");
-const { authenticate } = require("./auth");
 
-router.get("/", authenticate, async (req, res, next) => {
+router.get("/", async (req, res, next) => {
     try {
-        const playlists = await prisma.playlists.findMany({
-            where: { tracks: req.track.id },
-            include: { user: true },
-        });
-        res.json(playlists);
-
+        const tracks = await prisma.track.findMany();
+        res.json(tracks);
+    } catch (e) {
+        next(e);
     }
 });
+
+router.get("/:id", async (req, res, next) => {
+    const { id } = req.params;
+    const includePLaylists = req.user
+    ? { where: { ownerId: req.user.id } }
+    : false;
+    try {
+        const track = await prisma.track.findUniqueOrThrow({
+            where: { id: +id },
+            include: { playlists: includePLaylists },
+        });
+        res.json(track);
+    } catch (e) {
+        next(e);
+    }
+    });
