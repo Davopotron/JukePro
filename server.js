@@ -6,7 +6,7 @@ const PORT = 3000;
 app.use(require("morgan")("dev"));
 app.use(express.json());
 
-app.use("/users", require("./api/users"));
+app.use(require("./api/auth").router);
 app.use("/playlists", require("./api/playlists"));
 app.use("/tracks", require("./api/tracks"));
 
